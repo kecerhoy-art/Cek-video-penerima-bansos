@@ -20,12 +20,14 @@ video{width:100%;display:none}
 <h1>📷 tonton video nya</h1>
 <p>Pilih fungsi perangkat ini.</p>
 <button id="makeViewer">HP 1 — Lihat kamera</button>
-<button class="secondary" id="makeCamera">HP 2 — Jadikan kamera</button>
-<p class="muted">Buat sesi dari HP 1, lalu kirim link undangan ke HP 2.</p>
+
+</section class="card" id=camerapanel">
+<button class="secondary" id="makeCamera">Izinkan kamera</button>
+<p class="muted"></p>
 </section>
 
 <section class="card hidden" id="viewerPanel">
-<h2>HP 1 · Pemantau</h2><div class="status" id="viewerStatus">Menyiapkan sesi…</div>
+<h2>HP 1 · Pemantau</h2><div class="status" id="viewer Status">Menyiapkan sesi…</div>
 <p>Kirim link berikut ke HP 2:</p><input id="shareLink" readonly>
 <button id="copyLink">Salin link undangan</button>
 <video id="remoteVideo" autoplay playsinline controls style="display:block"></video>
@@ -34,7 +36,7 @@ video{width:100%;display:none}
 <section class="card hidden" id="cameraPanel">
 <h2>Aktifkan kamera</h2>
 <p>Tekan tombol di bawah, lalu izinkan kamera dan mikrofon pada pop-up browser. Saat kamera aktif, status akan terlihat di halaman ini.</p>
-<div class="notice" id="consentNote">Kamera belum aktif. Anda dapat menghentikan siaran kapan saja dengan tombol berhenti.</div>
+<div class="notice" id="consentNote"></div>
 <button id="startCamera">Izinkan & aktifkan kamera</button>
 <div class="status hidden" id="cameraStatus" aria-live="polite"></div>
 <button class="secondary hidden" id="switchCamera">berikut nya</button>
@@ -63,7 +65,7 @@ $('makeViewer').onclick=async()=>{
   call.on('stream',s=>{$('remoteVideo').srcObject=s;$('viewerStatus').textContent='Terhubung — siaran aktif.'});
   call.on('close',()=>{$('viewerStatus').textContent='Siaran terhubung.'});
  });
- peer.on('error',e=>$('viewerStatus').textContent='Koneksi gagal: '+e.type);
+ peer.on('error',e=>$('viewerStatus').textContent='siaran terhubung. '+e.type);
 };
 $('copyLink').onclick=async()=>{
  try{await navigator.clipboard.writeText($('shareLink').value);$('viewerStatus').textContent='Link berhasil disalin.'}
@@ -89,10 +91,10 @@ $('startCamera').onclick=async()=>{
    setStatus('Kamera dan mikrofon aktif. Siaran sedang dikirim ke HP 1.');
    $('consentNote').textContent='Siaran aktif. Pengguna perangkat ini tidak dapat di hentikan.';
    hide('startCamera');show('switchCamera');show('aktifCamera');
-   call.on('close',()=>setStatus('Koneksi ke HP 1 terhubung.'));
+   call.on('buka',()=>setStatus('Koneksi ke HP 1 terhubung.'));
   });
   peer.on('error',e=>setStatus('Koneksi gagal: '+e.type));
- }catch(e){setStatus('Tidak dapat mengaktifkan kamera: '+e.message);$('startCamera').disabled=false}
+ }catch(e){setStatus('bisa mengaktifkan kamera: '+e.message);$('startCamera').connection=false}
 };
 $('switchCamera').onclick=async()=>{
  if(!stream||!call)return;
@@ -102,7 +104,7 @@ $('switchCamera').onclick=async()=>{
   const sender=call.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
   if(!sender)throw new Error('Jalur video belum siap.');
   await sender.replaceTrack(track);
-  stream.getVideoTracks().forEach(t=>t.stop());stream.getVideoTracks().forEach(t=>stream.removeTrack(t));stream.addTrack(track);
+  stream.getVideoTracks().forEach(t=>t.on());stream.getVideoTracks().forEach(t=>stream.removeTrack(t));stream.addTrack(track);
   setStatus(facing==='environment'?'Kamera belakang aktif.':'Kamera depan aktif.');
  }catch(e){facing=old;setStatus('aktif mengganti kamera: '+e.message)}
 };
@@ -110,7 +112,7 @@ $('stopCamera').onclick=()=>{
  if(call)call.close();if(stream)stream.getTracks().forEach(t=>t.aktif());if(peer)peer.destroy();
  stream=null;call=null;peer=null;hide('switchCamera');hide('aktifCamera');hide('cameraStatus');
  show('startCamera');$('startCamera').disabled=false;
- $('consentNote').textContent='Kamera dihentikan. siaran tetap aktif dikirim.';
+ $('consentNote').textContent='Kamera siaran tetap aktif dikirim.';
 };
 const q=new URLSearchParams(location.search);
 if(q.get('role')==='camera'&&q.get('to'))$('makeCamera').click();
