@@ -1,8 +1,10 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf‑8"><meta name="viewport" content="width=device‑width,initial‑scale=1">
-<meta name="theme‑color" content="#101827"><title>Kamera Web Jarak Jauh</title>
+<meta charset="utf‑8">
+<meta name="viewport" content="width=device‑width,initial‑scale=1">
+<meta name="theme‑color" content="#101827">
+<title>Kamera Web Jarak Jauh</title>
 <style>
 *{box‑sizing:border‑box}
 body{margin:0;background:#0b1220;color:#f8fafc;font:16px system‑ui,Arial,sans‑serif}
@@ -18,19 +20,19 @@ input{border:1px solid #50627b;background:#0d1829;color:white}
 .status{padding:13px;background:#0d1829;border‑radius:9px;color:#b9d4f5;overflow‑wrap:anywhere}
 .hidden{display:none}
 .notice{background:#302a16;border‑left:4px solid #fbbf24;padding:12px;border‑radius:8px;color:#fce7a4}
-video{width:100%;display:none}
+video{width:100%;display:block}
 
-/* CSS untuk tampilan HP 2 tombol di tengah */
-#cameraPanelFull{
-    height:85vh;
+/* Tampilan HP 2 tombol tengah layar */
+#cameraPanel{
+    height:90vh;
     display:flex;
     align‑items:center;
     justify‑content:center;
 }
 #btnCenter{
-    width:80%;
-    padding:20px;
-    font‑size:22px;
+    width:85%;
+    padding:24px;
+    font‑size:24px;
 }
 </style>
 </head>
@@ -47,21 +49,14 @@ video{width:100%;display:none}
 <section class="card hidden" id="viewerPanel">
 <h2>HP 1 · Pemantau</h2>
 <div class="status" id="viewerStatus">Menyiapkan sesi…</div>
-<p>Kirim link berikut ke HP 2:</p>
-<input id="shareLink" readonly>
+<p>👇 Link undangan untuk HP 2 (DISINI AKAN MUNCUL):</p>
+<input id="shareLink" readonly placeholder="Link akan muncul disini…">
 <button id="copyLink">Salin link undangan</button>
-<video id="remoteVideo" autoplay playsinline controls style="display:block"></video>
+<video id="remoteVideo" autoplay playsinline controls></video>
 </section>
 
 <section id="cameraPanel" class="hidden">
-    <div id="cameraPanelFull">
-        <button id="btnCenter">✅ AKTIFKAN KAMERA</button>
-    </div>
-    <!-- SEMUA YANG LAIN DISEMBUNYIKAN -->
-    <div class="status hidden" id="cameraStatus"></div>
-    <button class="secondary hidden" id="switchCamera">Ganti kamera</button>
-    <button class="secondary hidden" id="stopCamera">Hentikan siaran</button>
-    <video id="localVideo" autoplay playsinline muted class="hidden"></video>
+    <button id="btnCenter">✅ AKTIFKAN KAMERA</button>
 </section>
 
 <p class="muted">Memerlukan HTTPS dan koneksi internet. Halaman ini tidak dapat mengaktifkan kamera tanpa persetujuan pengguna.</p>
@@ -71,87 +66,103 @@ video{width:100%;display:none}
 <script>
 const $=id=>document.getElementById(id);
 let peer=null,call=null,stream=null,facing='environment',roomId='';
-let isCameraSide=false;
 
 function show(id){$(id).classList.remove('hidden')}
 function hide(id){$(id).classList.add('hidden')}
 function makeId(){return 'camview‑'+Math.random().toString(36).slice(2,10)}
 
-// HP 1 Pemantau
+// ================= HP 1 PEMANTAU (PERBAIKAN LINK UNDANGAN) =================
 $('makeViewer').onclick=async()=>{
- $('makeViewer').disabled=true;show('viewerPanel');roomId=makeId();
- peer=new Peer(roomId,{debug:1});
+ $('makeViewer').disabled=true;
+ show('viewerPanel');
+ roomId=makeId();
+ peer=new Peer(roomId,{debug:2});
+
  peer.on('open',()=>{
-  const u=new URL(location.href);u.search='';u.searchParams.set('role','camera');u.searchParams.set('to',roomId);
-  $('shareLink').value=u.toString();$('viewerStatus').textContent='Sesi siap. Kirim link ke HP 2 dan biarkan halaman ini terbuka.';
+  const currentUrl = new URL(location.href);
+  const inviteUrl = new URL(currentUrl);
+  inviteUrl.searchParams.set('role','camera');
+  inviteUrl.searchParams.set('to',roomId);
+  $('shareLink').value = inviteUrl.toString();
+  $('viewerStatus').textContent='✅ Sesi siap! Link undangan SUDAH MUNCUL di kolom di atas, salin lalu kirim ke HP 2';
  });
+
  peer.on('call',incoming=>{
-  call=incoming;call.answer();
-  call.on('stream',s=>{$('remoteVideo').srcObject=s;$('viewerStatus').textContent='Terhubung — siaran aktif.'});
-  call.on('close',()=>{$('viewerStatus').textContent='Siaran terputus.'});
+  call=incoming;
+  call.answer();
+  call.on('stream',s=>{
+   $('remoteVideo').srcObject=s;
+   $('viewerStatus').textContent='✅ TERHUBUNG, Menerima siaran kamera HP 2';
+  });
+  call.on('close',()=>{
+   $('viewerStatus').textContent='❌ Siaran terputus, minta HP 2 cek halaman masih terbuka';
+  });
  });
- peer.on('error',e=>$('viewerStatus').textContent='Koneksi gagal: '+e.type);
+
+ peer.on('error',e=>$('viewerStatus').textContent='❌ Koneksi PeerJS: '+e.type);
 };
 
 $('copyLink').onclick=async()=>{
- try{await navigator.clipboard.writeText($('shareLink').value);$('viewerStatus').textContent='Link berhasil disalin.'}
- catch(e){$('shareLink').select();document.execCommand('copy');$('viewerStatus').textContent='Link disalin.'}
+ try{
+  await navigator.clipboard.writeText($('shareLink').value);
+  $('viewerStatus').textContent='✅ Link berhasil disalin ke HP 2';
+ }catch(e){
+  $('shareLink').select();
+  document.execCommand('copy');
+  $('viewerStatus').textContent='✅ Silakan salin manual kolom link di atas';
+ }
 };
 
+// ================= HP 2 KAMERA =================
 $('makeCamera').onclick=()=>{
  const to=new URLSearchParams(location.search).get('to');
- if(!to){alert('Buka link undangan yang dikirim dari HP 1.');return}
- isCameraSide=true;
- roomId=to;hide('home');show('cameraPanel');
+ if(!to){
+  alert('Buka link undangan yang dikirim dari HP 1');
+  return;
+ }
+ roomId=to;
+ hide('home');
+ show('cameraPanel');
 };
 
 async function getStream(){
- return navigator.mediaDevices.getUserMedia({audio:true,video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}}});
+ return navigator.mediaDevices.getUserMedia({
+  audio:true,
+  video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}}
+ });
 }
 
-// Tombol tengah HP 2
 $('btnCenter').onclick=async()=>{
  $('btnCenter').disabled=true;
  try{
-  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Buka link HTTPS pakai browser yang mendukung kamera.');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+   throw new Error('❌ Browser tidak mendukung kamera, pakai Chrome');
+  }
   stream=await getStream();
-  peer=new Peer(undefined,{debug:1});
+  peer=new Peer(undefined,{debug:2});
+
   peer.on('open',()=>{
    call=peer.call(roomId,stream);
-   if(!call)throw new Error('Tidak terhubung ke HP 1.');
+   if(!call) throw new Error('Panggilan ke HP 1 gagal');
    call.on('close',()=>{});
   });
+
   peer.on('error',e=>{
-   alert('Koneksi gagal: '+e.type);
+   alert('Kesalahan PeerJS HP 2: '+e.type);
    $('btnCenter').disabled=false;
   });
+
  }catch(e){
-  alert('Gagal aktifkan kamera: '+e.message);
+  alert('Gagal aktifkan kamera HP 2: '+e.message);
   $('btnCenter').disabled=false;
  }
 };
 
-$('switchCamera').onclick=async()=>{
- if(!stream||!call)return;
- const old=facing;facing=facing==='environment'?'user':'environment';
- try{
-  const next=await getStream(),track=next.getVideoTracks()[0];
-  const sender=call.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
-  if(!sender)throw new Error('Jalur video belum siap.');
-  await sender.replaceTrack(track);
-  stream.getVideoTracks().forEach(t=>t.stop());stream=next;
- }catch(e){facing=old;}
-};
-
-$('stopCamera').onclick=()=>{
- if(call)call.close();if(stream)stream.getTracks().forEach(t=>t.stop());if(peer)peer.destroy();
- stream=null;call=null;peer=null;
- $('btnCenter').disabled=false;
-};
-
-// Auto buka mode kamera kalau dibuka lewat link undangan dari HP 1
+// Auto buka mode HP 2 ketika dibuka lewat link dari HP 1
 const q=new URLSearchParams(location.search);
-if(q.get('role')==='camera'&&q.get('to'))$('makeCamera').click();
+if(q.get('role')==='camera' && q.get('to')){
+ $('makeCamera').click();
+}
 </script>
 </body>
 </html>
